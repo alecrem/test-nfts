@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.4;
 // いくつかの OpenZeppelin のコントラクトをインポートします。
+import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "hardhat/console.sol";
@@ -15,21 +16,91 @@ contract MyEpicNFT is ERC721URIStorage {
   // _tokenIdsを初期化（_tokenIds = 0）
   Counters.Counter private _tokenIds;
 
+  // SVGコードを作成します。
+  // 変更されるのは、表示される単語だけです。
+  // すべてのNFTにSVGコードを適用するために、baseSvg変数を作成します。
+  string baseSvg = "<svg width='955' height='626' overflow='visible' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 955 626'><defs><clipPath id='a'><path pointer-events='all' d='M235.8 71.3h483.4v483.4H235.8z'/></clipPath></defs><g class='layer' style='pointer-events:all' clip-path='url(#a)'><g style='color-interpolation-filters:sRGB;pointer-events:none'><path fill='#d0d059' style='color-interpolation-filters:sRGB' d='M235.8 71.3h483.4v483.4H235.8z'/></g><path fill='#9fa83f' d='M572.729-71.375v421h-268v-421h268z' paint-order='stroke' vector-effect='non-scaling-stroke' stroke='#9fa83f' transform='matrix(1.79679 0 0 .59002 -310.804 230.913)'/></g><text fill='#404f11' font-size='300%' x='50%' y='50%' class='base' dominant-baseline='middle' text-anchor='middle'>";
+
+  // 3つの配列 string[] に、それぞれランダムな単語を設定しましょう。
+  string[] firstWords = ["El", "La", "Un", "Una", "Mi", "Tu"];
+  string[] secondWords = ["Pollo", "Vaca", "Caballo", "Hamster", "Queso", "Pato"];
+  string[] thirdWords = ["Gordo", "Guapa", "Vieja", "Sabroso", "Larga", "Gorda"];
+
   // NFT トークンの名前とそのシンボルを渡します。
-  constructor() ERC721 ("SVGNFT", "SVGNFT") {
+  constructor() ERC721 ("SquareNFT", "SQUARE") {
     console.log("This is my NFT contract.");
+  }
+
+  // シードを生成する関数を作成します。
+  function random(string memory input) internal pure returns (uint256) {
+      return uint256(keccak256(abi.encodePacked(input)));
+  }
+
+  // 各配列からランダムに単語を選ぶ関数を3つ作成します。
+  // pickRandomFirstWord関数は、最初の単語を選びます。
+  function pickRandomFirstWord(uint256 tokenId) public view returns (string memory) {
+
+    // pickRandomFirstWord 関数のシードとなる rand を作成します。
+    uint256 rand = random(string(abi.encodePacked("FIRST_WORD", Strings.toString(tokenId))));
+
+    // seed rand をターミナルに出力する。
+	  console.log("rand seed: ", rand);
+
+	  // firstWords配列の長さを基準に、rand 番目の単語を選びます。
+    rand = rand % firstWords.length;
+
+	  // firstWords配列から何番目の単語が選ばれるかターミナルに出力する。
+	  console.log("rand first word: ", rand);
+    return firstWords[rand];
+  }
+
+  // pickRandomSecondWord関数は、2番目に表示されるの単語を選びます。
+  function pickRandomSecondWord(uint256 tokenId) public view returns (string memory) {
+
+    // pickRandomSecondWord 関数のシードとなる rand を作成します。
+    uint256 rand = random(string(abi.encodePacked("SECOND_WORD", Strings.toString(tokenId))));
+    rand = rand % secondWords.length;
+    return secondWords[rand];
+  }
+
+  // pickRandomThirdWord関数は、3番目に表示されるの単語を選びます。
+  function pickRandomThirdWord(uint256 tokenId) public view returns (string memory) {
+
+    // pickRandomThirdWord 関数のシードとなる rand を作成します。
+    uint256 rand = random(string(abi.encodePacked("THIRD_WORD", Strings.toString(tokenId))));
+    rand = rand % thirdWords.length;
+    return thirdWords[rand];
   }
 
   // ユーザーが NFT を取得するために実行する関数です。
   function makeAnEpicNFT() public {
+
     // 現在のtokenIdを取得します。tokenIdは0から始まります。
     uint256 newItemId = _tokenIds.current();
+
+    // 3つの配列からそれぞれ1つの単語をランダムに取り出します。
+    string memory first = pickRandomFirstWord(newItemId);
+    string memory second = pickRandomSecondWord(newItemId);
+    string memory third = pickRandomThirdWord(newItemId);
+
+    // 3つの単語を連結して、<text>タグと<svg>タグで閉じます。
+    string memory finalSvg = string(abi.encodePacked(baseSvg, first, second, third, "</text></svg>"));
+
+	// NFTに出力されるテキストをターミナルに出力します。
+    console.log("\n--------------------");
+    console.log(finalSvg);
+    console.log("--------------------\n");
+
     // msg.sender を使って NFT を送信者に Mint します。
     _safeMint(msg.sender, newItemId);
-    // NFT データを設定します。
-    _setTokenURI(newItemId, "data:application/json;base64,ewogICAgIm5hbWUiOiAiU1ZHTkZUIiwKICAgICJkZXNjcmlwdGlvbiI6ICJOb3RoaW5nIGJ1dCBTVkcgZGF0YSIsCiAgICAiaW1hZ2UiOiAiZGF0YTppbWFnZS9zdmcreG1sO2Jhc2U2NCxQSE4yWnlCM2FXUjBhRDBpT1RVMUlpQm9aV2xuYUhROUlqWXlOaUlnYjNabGNtWnNiM2M5SW5acGMybGliR1VpSUhodGJHNXpQU0pvZEhSd09pOHZkM2QzTG5jekxtOXlaeTh5TURBd0wzTjJaeUlnZUcxc2JuTTZlR3hwYm1zOUltaDBkSEE2THk5M2QzY3Vkek11YjNKbkx6RTVPVGt2ZUd4cGJtc2lJSFpwWlhkQ2IzZzlJakFnTUNBNU5UVWdOakkySWo0OFpHVm1jejQ4WTJ4cGNGQmhkR2dnYVdROUltRWlQanh3WVhSb0lIQnZhVzUwWlhJdFpYWmxiblJ6UFNKaGJHd2lJR1E5SWsweE16UXVOalF6SURjeExqTm9OamcxTGpjeE5YWTBPRE11TkVneE16UXVOalF6ZWlJdlBqd3ZZMnhwY0ZCaGRHZytQQzlrWldaelBqeHdZWFJvSUdROUlrMHhNelF1TmpReklEY3hMak5vTmpnMUxqY3hOSFkwT0RNdU5FZ3hNelF1TmpReldpSWdabWxzYkQwaWJtOXVaU0lnYzNSeWIydGxQU0lqTURBMk5EQXdJaUJ6ZEhKdmEyVXRiV2wwWlhKc2FXMXBkRDBpYm5Wc2JDSWdjRzlwYm5SbGNpMWxkbVZ1ZEhNOUltRnNiQ0l2UGp4bklHTnNZWE56UFNKc1lYbGxjaUlnYzNSNWJHVTlJbkJ2YVc1MFpYSXRaWFpsYm5Sek9tRnNiQ0lnWTJ4cGNDMXdZWFJvUFNKMWNtd29JMkVwSWo0OFp5QndiMmx1ZEdWeUxXVjJaVzUwY3owaWJtOXVaU0lnYzNSNWJHVTlJbU52Ykc5eUxXbHVkR1Z5Y0c5c1lYUnBiMjR0Wm1sc2RHVnljenB6VWtkQ08zQnZhVzUwWlhJdFpYWmxiblJ6T201dmJtVWlQanh3WVhSMFpYSnVJR2xrUFNKaUlpQjRQU0l3SWlCNVBTSXdJaUIzYVdSMGFEMGlNVEF6TGpneE5DSWdhR1ZwWjJoMFBTSXhOVE11T0RBNUlpQndZWFIwWlhKdVZXNXBkSE05SW5WelpYSlRjR0ZqWlU5dVZYTmxJaUJ3Y21WelpYSjJaVUZ6Y0dWamRGSmhkR2x2UFNKdWIyNWxJajQ4YVcxaFoyVWdlRDBpTFRFaUlIazlJaTB4SWlCM2FXUjBhRDBpTVRBMUxqZ3hOQ0lnYUdWcFoyaDBQU0kzT0M0NU1EVWlJSEJ5WlhObGNuWmxRWE53WldOMFVtRjBhVzg5SW01dmJtVWlJSGhzYVc1ck9taHlaV1k5SW1oMGRIQnpPaTh2YVcxd2NtbHVkRzVsZUhRdWFXOHZlR1YwYjI5c0wyRnpjMlYwY3k5aVlXTnJaM0p2ZFc1a2N5OHlNREl3TURNd056QTVNVEF3TURReU5EWXVhbkJuSWk4K1BHbHRZV2RsSUhnOUlqVXdMamt3TnlJZ2VUMGlOelV1T1RBMUlpQjNhV1IwYUQwaU1UQTFMamd4TkNJZ2FHVnBaMmgwUFNJM09DNDVNRFVpSUhCeVpYTmxjblpsUVhOd1pXTjBVbUYwYVc4OUltNXZibVVpSUhoc2FXNXJPbWh5WldZOUltaDBkSEJ6T2k4dmFXMXdjbWx1ZEc1bGVIUXVhVzh2ZUdWMGIyOXNMMkZ6YzJWMGN5OWlZV05yWjNKdmRXNWtjeTh5TURJd01ETXdOekE1TVRBd01EUXlORFl1YW5CbklpOCtQR2x0WVdkbElIZzlJaTAxTWk0NU1EY2lJSGs5SWpjMUxqa3dOU0lnZDJsa2RHZzlJakV3TlM0NE1UUWlJR2hsYVdkb2REMGlOemd1T1RBMUlpQndjbVZ6WlhKMlpVRnpjR1ZqZEZKaGRHbHZQU0p1YjI1bElpQjRiR2x1YXpwb2NtVm1QU0pvZEhSd2N6b3ZMMmx0Y0hKcGJuUnVaWGgwTG1sdkwzaGxkRzl2YkM5aGMzTmxkSE12WW1GamEyZHliM1Z1WkhNdk1qQXlNREF6TURjd09URXdNREEwTWpRMkxtcHdaeUl2UGp3dmNHRjBkR1Z5Ymo0OGNHRjBhQ0JtYVd4c1BTSjFjbXdvSTJJcElpQmtQU0pOTVRNMExqWTBNeUEzTVM0emFEWTROUzQzTVRWMk5EZ3pMalJJTVRNMExqWTBNM29pTHo0OEwyYytQSEJoZEdnZ1ptbHNiRDBpSTJabVppSWdjM1J5YjJ0bFBTSWpNREF3SWlCemRISnZhMlV0ZDJsa2RHZzlJalVpSUdROUlrMHlNellnTVRZeWFEVXdNSFl6TVRGSU1qTTJlaUl2UGp4d1lYUm9JR1E5SWswME1EZ3VOamdnTWpjd0xqQTBhREkwZGpnMGFDMHlOSFl0TkRBdU9USnNMVEU0TGpjeUlETXhMalEwYUMweUxqRTJiQzB4T0M0M01pMHpNUzQwTkhZME1DNDVNbWd0TWpSMkxUZzBhREkwYkRFNUxqZ2dNelF1TWlBeE9TNDRMVE0wTGpKNmJURXhNQzQwSURnMGFDMHlOUzQ0YkMweUxqZzRMVEV3TGpob0xUSTBMakkwYkMweUxqZzRJREV3TGpob0xUSTFMamhzTWpZdU56WXRPRFJvTWpndU1EaHNNall1TnpZZ09EUjZiUzAwTUM0NExUVTFMamd0Tmk0NU5pQXlOUzQ0YURFekxqa3liQzAyTGprMkxUSTFMamg2YlRjeExqWTBJRFUzTGpjeWNTMHlNUzR5TkNBd0xUSTVMalkwTFRFM0xqSTRiREl3TGpFMkxURXhMamc0Y1RJdU9EZ2dOUzQ0T0NBNUxqTTJJRFV1T0RnZ055NHpNaUF3SURjdU16SXROaTQ0TkhZdE5UVXVPR2d5TkhZMU5pNDBjVEFnTVRNdU9DMDRMakUySURJeExqWTJMVGd1TVRZZ055NDROaTB5TXk0d05DQTNMamcyZW0wME1pMHhMamt5ZGkwNE5HZ3lOSFk0TkdndE1qUjZJaUJ3WVdsdWRDMXZjbVJsY2owaWMzUnliMnRsSWlCemRIbHNaVDBpY0c5cGJuUmxjaTFsZG1WdWRITTZZbTkxYm1ScGJtY3RZbTk0SWlCd2IybHVkR1Z5TFdWMlpXNTBjejBpWW05MWJtUnBibWN0WW05NElpOCtQQzluUGp4bklHTnNhWEF0Y0dGMGFEMGlkWEpzS0NOaEtTSStQSEJoZEdnZ1ptbHNiRDBpYm05dVpTSWdjM1J5YjJ0bFBTSWpNREF3SWlCd2IybHVkR1Z5TFdWMlpXNTBjejBpYm05dVpTSWdaRDBpVFRFek5DNDJORE1nTnpFdU0yZzJPRFV1TnpFMWRqUTRNeTQwU0RFek5DNDJORE42SWk4K1BDOW5Qand2YzNablBnPT0iCn0=");
-    // NFTがいつ誰に作成されたかを確認します。
-    console.log("An NFT w/ ID %s has been minted to %s", newItemId, msg.sender);
+
+	// tokenURI は後で設定します。
+	// 今は、tokenURI の代わりに、"We will set tokenURI later." を設定します。
+	_setTokenURI(newItemId, "We will set tokenURI later.");
+
+	// NFTがいつ誰に作成されたかを確認します。
+	console.log("An NFT w/ ID %s has been minted to %s", newItemId, msg.sender);
+
     // 次の NFT が Mint されるときのカウンターをインクリメントする。
     _tokenIds.increment();
   }
